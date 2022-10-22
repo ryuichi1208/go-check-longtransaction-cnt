@@ -99,11 +99,11 @@ func do() error {
 		}
 	}
 
-	if opts.WARN_COUNT > 0 && overCount > opts.WARN_COUNT {
+	if opts.WARN_COUNT > 0 && overCount >= opts.WARN_COUNT {
 		chkSt = checkers.WARNING
 		msg = fmt.Sprintf("[WARN] Number of long transactions exceeds threshold:%d", overCount)
 	}
-	if opts.CRIT_COUNT > 0 && overCount > opts.CRIT_COUNT {
+	if opts.CRIT_COUNT > 0 && overCount >= opts.CRIT_COUNT {
 		chkSt = checkers.CRITICAL
 		msg = fmt.Sprintf("[CRIT] Number of long transactions exceeds threshold:%d", overCount)
 	}

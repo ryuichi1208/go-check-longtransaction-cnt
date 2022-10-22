@@ -70,14 +70,14 @@ func do() error {
 	chkSt := checkers.OK
 	msg := "OK"
 
-	Db, err := connect()
+	db, err := connect()
 	if err != nil {
 		chkSt = checkers.WARNING
 		msg = fmt.Sprintf("connection error: %s", err.Error())
 		checkers.NewChecker(chkSt, msg).Exit()
 	}
 
-	selected, err := Db.Query("SELECT trx_started FROM INNODB_TRX")
+	selected, err := db.Query("SELECT trx_started FROM INNODB_TRX")
 	if err != nil {
 		chkSt = checkers.WARNING
 		msg = fmt.Sprintf("connection error: %s", err.Error())
@@ -88,7 +88,11 @@ func do() error {
 
 	for selected.Next() {
 		var data Data
-		selected.Scan(&data.trxStarted)
+		err := selected.Scan(&data.trxStarted)
+		if err != nil {
+			return err
+		}
+
 		t, err := checkDuration(data.trxStarted)
 		if err != nil {
 			return err
@@ -111,7 +115,6 @@ func do() error {
 	checkers.NewChecker(chkSt, msg).Exit()
 
 	return nil
-
 }
 
 func Run() int {

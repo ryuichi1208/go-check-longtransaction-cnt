@@ -17,6 +17,7 @@ type options struct {
 	DB_USER    string `short:"u" long:"user" description:"mysql user" default:"root" required:"false"`
 	DB_HOST    string `short:"h" long:"host" description:"mysql host" default:"localhost" required:"true"`
 	DB_PORT    string `short:"p" long:"port" description:"mysql port" default:"3306" required:"false"`
+	DB_NAME    string `long:"db-name" default:"INFORMATION_SCHEMA"`
 	WARN_COUNT int64  `long:"warn-count" description:"set threshold for warning" default:"0"`
 	CRIT_COUNT int64  `long:"crit-count" description:"set threshold for critical" default:"0"`
 
@@ -40,7 +41,7 @@ func connect() (*sql.DB, error) {
 	host := opts.DB_HOST
 	port := opts.DB_PORT
 	pw := os.Getenv("MYSQL_PASSWORD")
-	db_name := os.Getenv("MYSQL_DATABASE")
+	db_name := opts.DB_NAME
 	var path string = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=true", user, pw, host, port, db_name)
 	var err error
 	db, err := sql.Open("mysql", path)
@@ -66,14 +67,21 @@ func parseArgs(args []string) error {
 }
 
 func do() error {
+	chkSt := checkers.OK
+	msg := "OK"
+
 	Db, err := connect()
 	if err != nil {
-		panic(err.Error())
+		chkSt = checkers.WARNING
+		msg = fmt.Sprintf("connection error: %s", err.Error())
+		checkers.NewChecker(chkSt, msg).Exit()
 	}
 
 	selected, err := Db.Query("SELECT trx_started FROM INNODB_TRX")
 	if err != nil {
-		panic(err.Error())
+		chkSt = checkers.WARNING
+		msg = fmt.Sprintf("connection error: %s", err.Error())
+		checkers.NewChecker(chkSt, msg).Exit()
 	}
 
 	var overCount int64
@@ -90,9 +98,6 @@ func do() error {
 			overCount++
 		}
 	}
-
-	chkSt := checkers.OK
-	msg := "OK"
 
 	if opts.WARN_COUNT > 0 && overCount > opts.WARN_COUNT {
 		chkSt = checkers.WARNING
